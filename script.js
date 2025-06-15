@@ -63,7 +63,7 @@ async function getTodayCigarettes() {
 }
 
 // Pobierz ostatnie wpisy (możesz dostosować limit)
-async function getLastEntries(limit = 5) {
+async function getLastEntries(limit = 20) {
     const { data, error } = await supabase
         .from('smoking_logs')
         .select('*')
@@ -129,28 +129,6 @@ async function addCigarette() {
     return data && data.length > 0 ? data[0] : null;
 }
 
-// Dodaj ręcznie na podstawie podanego czasu
-async function addManualCigarette(datetimeStr) {
-    if (!datetimeStr) {
-        alert("Wybierz datę i godzinę");
-        return;
-    }
-
-    const isoDate = new Date(datetimeStr).toISOString();
-
-    const { data, error } = await supabase
-        .from('smoking_logs')
-        .insert([{ created_at: isoDate }]);
-
-    if (error) {
-        console.error("Błąd przy dodawaniu ręcznym:", error);
-        alert("Wystąpił błąd podczas zapisu");
-        return;
-    }
-
-    await updateUI();
-}
-
 // Usuń wpis
 async function deleteEntry(id) {
     const { error } = await supabase
@@ -177,9 +155,9 @@ async function updateUI() {
         lastTimeEl.textContent = '-';
     }
 
-    // Lista wszystkich wpisów
+    // Lista wpisów z bieżącego dnia
     historyList.innerHTML = '';
-    allEntries.forEach(entry => {
+    todayCigs.forEach(entry => {
         const li = document.createElement('li');
 
         const dateSpan = document.createElement('span');
@@ -225,13 +203,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     burnBtn.addEventListener('click', async () => {
         await addCigarette();
         await updateUI();
-    });
-
-    const manualBtn = document.getElementById('manual-btn');
-    const manualInput = document.getElementById('manual-datetime');
-
-    manualBtn.addEventListener('click', async () => {
-        await addManualCigarette(manualInput.value);
     });
 
     await updateUI();
