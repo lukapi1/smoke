@@ -9,26 +9,78 @@
 <body>
   <div class="container">
     <h1>Smoke Tracker</h1>
+    
     <div class="stats">
       <p>Dzisiaj: <span id="today-count">0</span></p>
       <p>Ostatni: <span id="last-time">-</span></p>
     </div>
+    
     <button id="burn-btn">BURN</button>
-    <div class="history">
-      <h2>Historia</h2>
-      <div class="history-grid">
-        <div class="history-column">
-          <h3>Ostatnie zapisy</h3>
-          <ul id="history-list"></ul>
+    
+    <!-- Nowa nawigacja -->
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="today">Dzisiaj</button>
+      <button class="tab-btn" data-tab="stats">Statystyki</button>
+      <button class="tab-btn" data-tab="health">Zdrowie</button>
+    </nav>
+    
+    <!-- Zakładki -->
+    <div id="today-tab" class="tab-content active">
+      <div class="progress-card">
+        <h3>Dzisiejszy cel</h3>
+        <div class="progress-container">
+          <div class="progress-bar" id="daily-progress"></div>
         </div>
-        <div class="history-column">
-          <h3>Podsumowanie dzienne</h3>
-          <ul id="summary-list"></ul>
+        <p id="progress-text">0/10 papierosów</p>
+      </div>
+
+      <div class="history">
+        <h2>Historia dzienna</h2>
+        <div class="history-grid">
+          <div class="history-column">
+            <div class="section-header">
+              <h3>Ostatnie zapisy</h3>
+              <span id="today-count-badge" class="badge">0</span>
+            </div>
+            <ul id="history-list"></ul>
+          </div>
+          <div class="history-column">
+            <h3>Podsumowanie</h3>
+            <ul id="summary-list"></ul>
+          </div>
+        </div>  
+      </div>
+    </div>
+    
+    <div id="stats-tab" class="tab-content">
+      <div class="card">
+        <h3>💰 Koszty</h3>
+        <p id="monthly-cost">Ładuję dane...</p>
+        <p id="savings-potential"></p>
+      </div>
+      
+      <div class="card">
+        <h3>📈 Trendy</h3>
+        <div class="chart-container">
+          <canvas id="weekly-chart"></canvas>
         </div>
-      </div>  
+      </div>
+    </div>
+    
+    <div id="health-tab" class="tab-content">
+      <div class="card">
+        <h3>⏱️ Korzyści zdrowotne</h3>
+        <p id="health-benefits">Ładuję dane...</p>
+      </div>
+      
+      <div class="card">
+        <h3>🏆 Osiągnięcia</h3>
+        <div id="achievements"></div>
+      </div>
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module" src="script.js"></script>
 </body>
 </html>
