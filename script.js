@@ -151,8 +151,24 @@ async function updateUI() {
 
     if (todayCigs.length > 0) {
         lastTimeEl.textContent = formatDate(todayCigs[0].created_at);
+        // Dodajemy informację o czasie od ostatniego papierosa
+        const timeSinceLast = getTimeSinceLastCigarette(todayCigs[0].created_at);
+        const timeInfoEl = document.createElement('div');
+        timeInfoEl.textContent = `ostatni spalony: ${timeSinceLast}`;
+        timeInfoEl.style.fontSize = '14px';
+        timeInfoEl.style.color = '#aaa';
+        timeInfoEl.style.marginTop = '5px';
+        
+        // Usuń poprzedni element jeśli istnieje
+        const existingTimeInfo = document.getElementById('time-since-last');
+        if (existingTimeInfo) existingTimeInfo.remove();
+        
+        timeInfoEl.id = 'time-since-last';
+        lastTimeEl.parentNode.appendChild(timeInfoEl);
     } else {
         lastTimeEl.textContent = '-';
+        const existingTimeInfo = document.getElementById('time-since-last');
+        if (existingTimeInfo) existingTimeInfo.remove();
     }
 
     // Lista wpisów z bieżącego dnia
@@ -192,6 +208,29 @@ async function updateUI() {
         const li = document.createElement('li');
         li.textContent = `${date} — ${count} papieros(y)`;
         summaryList.appendChild(li);
+    }
+}
+
+// Funkcja obliczająca czas, który minął od ostatniego papierosa
+function getTimeSinceLastCigarette(lastDate) {
+    if (!lastDate) return '-';
+    
+    const now = new Date();
+    const last = new Date(lastDate);
+    const diffInSeconds = Math.floor((now - last) / 1000);
+    
+    if (diffInSeconds < 60) {
+        return `${diffInSeconds} sekund temu`;
+    } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `${minutes} minut temu`;
+    } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        const minutes = Math.floor((diffInSeconds % 3600) / 60);
+        return `${hours} godzin i ${minutes} minut temu`;
+    } else {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `${days} dni temu`;
     }
 }
 
