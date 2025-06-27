@@ -39,6 +39,12 @@ const achievementsEl = document.getElementById('achievements');
 const dailyProgressEl = document.getElementById('daily-progress');
 const progressTextEl = document.getElementById('progress-text');
 const todayCountBadge = document.getElementById('today-count-badge');
+const totalCostEl = document.getElementById('total-cost');
+const dailyAverageEl = document.getElementById('daily-average');
+const potentialSavingsEl = document.getElementById('potential-savings');
+const bestDayEl = document.getElementById('best-day');
+const worstDayEl = document.getElementById('worst-day');
+const averagePerDayEl = document.getElementById('average-per-day');
 
 // Obsługa zakładek
 tabBtns.forEach(btn => {
@@ -52,83 +58,60 @@ tabBtns.forEach(btn => {
     btn.classList.add('active');
     document.getElementById(`${tabId}-tab`).classList.add('active');
     
-    // Załaduj dane dla zakładki jeśli jest to Statystyki lub Zdrowie
+    // Załaduj dane dla zakładki jeśli jest to Statystyki, Zdrowie lub Historia
     if (tabId === 'stats') updateStatsTab();
     if (tabId === 'health') updateHealthTab();
+    if (tabId === 'history') {
+      updateUI();  // Ładuje podsumowanie
+      generateFullHistoryChart();  // Ładuje wykres
+    }
   });
 });
 
-// Oblicz koszty i oszczędności
-async function calculateFinancialStats() {
-  const allEntries = await getAllEntries();
-  const pricePerPack = 20; // Załóżmy 20 zł za paczkę
-  const cigsPerPack = 20;
-  
-  // Oblicz koszt miesięczny
-  const daysInMonth = 30;
-  const cigsPerDay = allEntries.length / (daysInMonth / 2); // Uproszczone założenie
-  const monthlyCost = (cigsPerDay * daysInMonth / cigsPerPack) * pricePerPack;
-  
-  // Potencjalne oszczędności przy redukcji o 25%
-  const potentialSavings = monthlyCost * 0.25;
-  
-  return {
-    monthlyCost: monthlyCost.toFixed(2),
-    potentialSavings: potentialSavings.toFixed(2)
-  };
-}
-
 // Aktualizuj zakładkę Statystyki
 async function updateStatsTab() {
-  const stats = await calculateFinancialStats();
-  monthlyCostEl.textContent = `W tym miesiącu wydałeś: ${stats.monthlyCost} zł`;
-  savingsPotentialEl.textContent = `Gdybyś zmniejszył palenie o 25%, zaoszczędziłbyś ${stats.potentialSavings} zł miesięcznie!`;
+  const allEntries = await getAllEntries();
+  const pricePerPack = 22.50; // 20 zł za paczkę
+  const cigsPerPack = 20; // 20 papierosów w paczce
   
-  // Generuj wykres
-  generateWeeklyChart();
-}
+  // Oblicz dokładne statystyki czasowe
+  if (allEntries.length === 0) {
+    monthlyCostEl.textContent = "Brak danych";
+    return;
+  }
 
-// Generuj wykres tygodniowy
-async function generateWeeklyChart() {
-  const entries = await getLastEntries(50); // Ostatnie 50 wpisów
-  const dailyCounts = {};
+  // Znajdź najstarszy i najnowszy wpis
+  const firstEntry = allEntries[allEntries.length - 1];
+  const lastEntry = allEntries[0];
+  const firstDate = new Date(firstEntry.created_at);
+  const lastDate = new Date(lastEntry.created_at);
+
+  // Oblicz liczbę dni
+  const daysTracked = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24)) + 1;
   
-  entries.forEach(entry => {
-    const date = new Date(entry.created_at).toLocaleDateString('pl-PL', { weekday: 'short' });
-    dailyCounts[date] = (dailyCounts[date] || 0) + 1;
-  });
+  // Oblicz statystyki finansowe
+  const totalCigs = allEntries.length;
+  const totalPacks = totalCigs / cigsPerPack;
+  const totalCost = totalPacks * pricePerPack;
+  const dailyAverageCost = totalCost / daysTracked;
+  const monthlyAverageCost = dailyAverageCost * 30.44; // Średnia długość miesiąca
+
+  // Statystyki dzienne
+  const groupedByDate = groupByDate(allEntries);
+  const dailyCounts = Object.values(groupedByDate).map(day => day.count);
+  const bestDay = Math.max(...dailyCounts);
+  const worstDay = Math.min(...dailyCounts);
+  const averagePerDay = (dailyCounts.reduce((a, b) => a + b, 0) / dailyCounts.length).toFixed(1);
+
+  // Aktualizuj UI
+  monthlyCostEl.textContent = `Średnio miesięcznie: ${monthlyAverageCost.toFixed(2)} zł`;
+  totalCostEl.textContent = `Łącznie wydane: ${totalCost.toFixed(2)} zł (${totalCigs} sztuk)`;
+  dailyAverageEl.textContent = `Średnio dziennie: ${dailyAverageCost.toFixed(2)} zł`;
+  potentialSavingsEl.textContent = `Gdybyś palił o 25% mniej, zaoszczędziłbyś ${(totalCost * 0.25).toFixed(2)} zł`;
   
-  const ctx = document.getElementById('weekly-chart').getContext('2d');
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: Object.keys(dailyCounts),
-      datasets: [{
-        label: 'Papierosy dziennie',
-        data: Object.values(dailyCounts),
-        backgroundColor: '#ff6b6b80',
-        borderColor: '#ff6b6b',
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { color: '#aaa' },
-          grid: { color: '#333' }
-        },
-        x: {
-          ticks: { color: '#aaa' },
-          grid: { color: '#333' }
-        }
-      },
-      plugins: {
-        legend: { labels: { color: '#aaa' } }
-      }
-    }
-  });
+  bestDayEl.textContent = `Najwięcej dziennie: ${bestDay} papierosów`;
+  worstDayEl.textContent = `Najmniej dziennie: ${worstDay} papierosów`;
+  averagePerDayEl.textContent = `Średnia dzienna: ${averagePerDay} papierosów`;
 }
 
 // Aktualizuj zakładkę Zdrowie
@@ -140,33 +123,54 @@ async function updateHealthTab() {
     const now = new Date();
     const hoursSinceLast = Math.floor((now - lastTime) / (1000 * 60 * 60));
     
-    let benefitsText = '';
+    // Aktualizuj pasek postępu czasu
+    const timeProgress = document.getElementById('time-progress');
+    const timeProgressPercent = Math.min(hoursSinceLast / 48 * 100, 100); // 48h = 100%
+    timeProgress.style.width = `${timeProgressPercent}%`;
+    document.getElementById('time-since-last-text').textContent = 
+      `${hoursSinceLast} godzin bez papierosa`;
     
-    if (hoursSinceLast >= 48) {
-      benefitsText = '🎉 Nikotyna opuściła Twój organizm!';
-    } else if (hoursSinceLast >= 12) {
-      benefitsText = '👍 Tlenek węgla we krwi wrócił do normy!';
-    } else if (hoursSinceLast >= 1) {
-      benefitsText = '💓 Twoje ciśnienie krwi się poprawia';
-    } else {
-      benefitsText = '⏳ Zaczekaj godzinę, aby zobaczyć pierwsze korzyści';
-    }
+    // Oblicz oszczędności zdrowotne (przykład: 5 zł za każdy dzień bez papierosa)
+    const daysWithout = (hoursSinceLast / 24).toFixed(1);
+    const healthSavings = daysWithout * 5; // 5 zł dziennie oszczędności
+    const savingsProgress = document.getElementById('health-savings-progress');
+    const savingsPercent = Math.min(daysWithout / 30 * 100, 100); // 30 dni = 100%
+    savingsProgress.style.width = `${savingsPercent}%`;
+    document.getElementById('health-savings-text').textContent = 
+      `Zaoszczędzono: ${healthSavings.toFixed(2)} zł (${daysWithout} dni)`;
     
-    healthBenefitsEl.innerHTML = `
-      <strong>Od ostatniego papierosa:</strong> ${getTimeSinceLastCigarette(lastEntry.created_at)}<br><br>
-      <strong>Korzyści:</strong> ${benefitsText}
-    `;
+    // Aktualizuj osiągnięcia
+    updateAchievements(hoursSinceLast);
+  } else {
+    document.getElementById('time-since-last-text').textContent = "Brak danych";
   }
+}
+
+function updateAchievements(hours) {
+  const days = Math.floor(hours / 24);
+  const achievementsEl = document.getElementById('achievements');
+  achievementsEl.innerHTML = '';
   
-  // Symulacja osiągnięć
-  achievementsEl.innerHTML = `
-    <div class="achievement">
-      <span>🥉</span> 3 dni z rzędu w limicie
-    </div>
-    <div class="achievement">
-      <span>💪</span> Tydzień z redukcją o 20%
-    </div>
-  `;
+  const achievements = [
+    { threshold: 1, text: "Pierwszy dzień bez papierosa! 🎉", icon: "🥇" },
+    { threshold: 3, text: "3 dni - już czujesz różnicę! 👍", icon: "🥈" },
+    { threshold: 7, text: "Tydzień - świetny wynik! 💪", icon: "🏅" },
+    { threshold: 30, text: "Miesiąc - jesteś mistrzem! 🏆", icon: "🌟" }
+  ];
+  
+  achievements.forEach(achievement => {
+    if (days >= achievement.threshold) {
+      const div = document.createElement('div');
+      div.className = 'achievement-unlocked';
+      div.innerHTML = `<span>${achievement.icon}</span> ${achievement.text}`;
+      achievementsEl.appendChild(div);
+    }
+  });
+  
+  // Jeśli brak osiągnięć
+  if (achievementsEl.children.length === 0) {
+    achievementsEl.innerHTML = '<p>Zdobywaj osiągnięcia za każdy dzień bez papierosa!</p>';
+  }
 }
 
 // Formatowanie daty
@@ -331,13 +335,17 @@ async function deleteEntry(id) {
 async function updateUI() {
     const todayCigs = await getTodayCigarettes();
     const allEntries = await getAllEntries();
+    const yesterdayCount = await getYesterdayCigarettes();
+
+
 
     // Aktualizuj licznik dzisiejszych papierosów
     todayCountEl.textContent = todayCigs.length;
     todayCountBadge.textContent = todayCigs.length;
   
-  // Aktualizuj pasek postępu (załóżmy cel 10 papierosów dziennie)
-    const dailyGoal = 10;
+  // Aktualizuj pasek postępu 
+  // Dzisiejszy cel: wczoraj -1 (minimum 1, maksimum np. 20)
+    const dailyGoal = Math.max(1, Math.min(yesterdayCount - 1, 20));
     const progressPercent = Math.min((todayCigs.length / dailyGoal) * 100, 100);
     dailyProgressEl.style.width = `${progressPercent}%`;
     progressTextEl.textContent = `${todayCigs.length}/${dailyGoal} papierosów`;
@@ -440,6 +448,74 @@ function getTimeSinceLastCigarette(lastDate) {
         const days = Math.floor(diffInSeconds / 86400);
         return `${days} dni temu`;
     }
+}
+
+// Wykres w zakładce historia
+async function generateFullHistoryChart() {
+  const allEntries = await getAllEntries();  // Pobierz wszystkie wpisy z Supabase
+  
+  // Grupuj wpisy po datach (dzień/miesiąc)
+  const groupedByDate = {};
+  allEntries.forEach(entry => {
+    const date = new Date(entry.created_at).toLocaleDateString('pl-PL');  // Format: "DD.MM.YYYY"
+    groupedByDate[date] = (groupedByDate[date] || 0) + 1;
+  });
+  
+  // Przygotuj dane dla wykresu
+  const dates = Object.keys(groupedByDate).sort();  // Posortowane daty
+  const counts = dates.map(date => groupedByDate[date]);  // Liczba papierosów per dzień
+  
+  // Generuj wykres
+  const ctx = document.getElementById('full-history-chart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [{
+        label: 'Liczba papierosów',
+        data: counts,
+        borderColor: '#ff6b6b',
+        backgroundColor: '#ff6b6b20',
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Papierosy' }
+        },
+        x: {
+          title: { display: true, text: 'Data' }
+        }
+      }
+    }
+  });
+}
+
+// Pobierz liczbę papierosów z wczoraj
+async function getYesterdayCigarettes() {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0); // Początek wczorajszego dnia
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Początek dzisiejszego dnia
+
+    const { data, error } = await supabase
+        .from('smoking_logs')
+        .select('*')
+        .gte('created_at', yesterday.toISOString())
+        .lt('created_at', today.toISOString());
+
+    if (error) {
+        console.error('Błąd przy pobieraniu wczorajszych danych:', error);
+        return 0; // Domyślnie 0, jeśli błąd
+    }
+
+    return data.length;
 }
 
 // Inicjalizacja

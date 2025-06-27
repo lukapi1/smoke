@@ -294,3 +294,55 @@ h1 {
     min-width: 100%;
   }
 }
+
+/* Stylizacja zakładki Zdrowie */
+.health-container {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.health-box {
+  background-color: #252525;
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid #333;
+}
+
+.health-box h3 {
+  color: #4A89DC;
+  margin-top: 0;
+}
+
+.health-progress {
+  height: 10px;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  width: 0%;
+  border-radius: 5px;
+  transition: width 0.5s ease;
+}
+
+.health-benefits {
+  margin-top: 15px;
+}
+
+.health-benefits p {
+  margin: 8px 0;
+  padding-left: 10px;
+  border-left: 3px solid #4CAF50;
+}
+
+.health-benefits span {
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+#achievements-box {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 600px) {
+  .health-container {
+    grid-template-columns: 1fr;
+  }
+}

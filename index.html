@@ -16,12 +16,13 @@
     </div>
     
     <button id="burn-btn">BURN</button>
-    
-    <!-- Nowa nawigacja -->
+
+    <!-- Nawigacja-->
     <nav class="tabs">
       <button class="tab-btn active" data-tab="today">Dzisiaj</button>
       <button class="tab-btn" data-tab="stats">Statystyki</button>
       <button class="tab-btn" data-tab="health">Zdrowie</button>
+      <button class="tab-btn" data-tab="history">Historia</button>
     </nav>
     
     <!-- Zakładki -->
@@ -35,7 +36,6 @@
       </div>
 
       <div class="history">
-        <h2>Historia dzienna</h2>
         <div class="history-grid">
           <div class="history-column">
             <div class="section-header">
@@ -44,38 +44,78 @@
             </div>
             <ul id="history-list"></ul>
           </div>
-          <div class="history-column">
-            <h3>Podsumowanie</h3>
-            <ul id="summary-list"></ul>
-          </div>
         </div>  
       </div>
     </div>
     
     <div id="stats-tab" class="tab-content">
       <div class="card">
-        <h3>💰 Koszty</h3>
+        <h3>💰 Podsumowanie finansowe</h3>
         <p id="monthly-cost">Ładuję dane...</p>
-        <p id="savings-potential"></p>
-      </div>
-      
+        <p id="total-cost"><strong>Łącznie wydane:</strong> obliczam...</p>
+        <p id="daily-average"><strong>Średnio dziennie:</strong> obliczam...</p>
+        <p id="potential-savings"><strong>Potencjalne oszczędności:</strong> obliczam...</p>
+    </div>
+  
       <div class="card">
-        <h3>📈 Trendy</h3>
-        <div class="chart-container">
-          <canvas id="weekly-chart"></canvas>
-        </div>
+        <h3>📅 Statystyki dzienne</h3>
+        <p id="best-day"><strong>Najlepszy dzień:</strong> obliczam...</p>
+        <p id="worst-day"><strong>Najgorszy dzień:</strong> obliczam...</p>
+        <p id="average-per-day"><strong>Średnia dzienna:</strong> obliczam...</p>
       </div>
     </div>
     
     <div id="health-tab" class="tab-content">
-      <div class="card">
-        <h3>⏱️ Korzyści zdrowotne</h3>
-        <p id="health-benefits">Ładuję dane...</p>
+      <div class="health-container">
+    <!-- Box 1: Czas od ostatniego papierosa -->
+        <div class="health-box">
+          <h3>⏱️ Czysty czas</h3>
+          <div class="progress-container">
+            <div class="health-progress" id="time-progress"></div>
+          </div>
+          <p id="time-since-last-text">0 godzin</p>
+          <div class="health-benefits">
+            <p><span>1h:</span> Ciśnienie krwi się stabilizuje</p>
+            <p><span>12h:</span> Tlenek węgla w normie</p>
+            <p><span>48h:</span> Nikotyna opuszcza organizm</p>
+          </div>
+        </div>
+
+    <!-- Box 2: Oszczędności zdrowotne -->
+        <div class="health-box">
+          <h3>💰 Oszczędności zdrowotne</h3>
+          <div class="progress-container">
+            <div class="health-progress" id="health-savings-progress"></div>
+          </div>
+          <p id="health-savings-text">Zaoszczędzono: 0 zł</p>
+          <div class="health-benefits">
+            <p><span>1 dzień:</span> Mniejsze ryzyko zawału</p>
+            <p><span>1 miesiąc:</span> Lepsza kondycja płuc</p>
+            <p><span>1 rok:</span> Ryzyko chorób serca o 50% mniejsze</p>
+          </div>
+        </div>
+
+    <!-- Box 3: Osiągnięcia -->
+        <div class="health-box" id="achievements-box">
+          <h3>🏆 Osiągnięcia</h3>
+          <div id="achievements">
+        <!-- Tutaj będą dynamicznie dodawane osiągnięcia -->
+        </div>
       </div>
-      
+    </div>
+  </div>
+
+    <div id="history-tab" class="tab-content">
       <div class="card">
-        <h3>🏆 Osiągnięcia</h3>
-        <div id="achievements"></div>
+        <h3>📈 Pełna historia palenia</h3>
+        <div class="chart-container">
+          <canvas id="full-history-chart"></canvas>
+        </div>
+      </div>
+  
+      <div class="card">
+        <h3>📅 Podsumowanie dni</h3>
+        <ul id="summary-list"></ul>
       </div>
     </div>
   </div>
