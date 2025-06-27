@@ -84,15 +84,16 @@
 
     <!-- Box 2: Oszczędności zdrowotne -->
         <div class="health-box">
-          <h3>💰 Oszczędności zdrowotne</h3>
-          <div class="progress-container">
-            <div class="health-progress" id="health-savings-progress"></div>
+          <h3>⏳ Oś czasu regeneracji</h3>
+          <div class="timeline-header">
+            <span id="current-status">0 godzin bez papierosa</span>
+            <div class="progress-container">
+              <div class="timeline-progress-bar" id="health-progress-bar"></div>
+            </div>
           </div>
-          <p id="health-savings-text">Zaoszczędzono: 0 zł</p>
-          <div class="health-benefits">
-            <p><span>1 dzień:</span> Mniejsze ryzyko zawału</p>
-            <p><span>1 miesiąc:</span> Lepsza kondycja płuc</p>
-            <p><span>1 rok:</span> Ryzyko chorób serca o 50% mniejsze</p>
+  
+          <div class="health-timeline" id="health-timeline">
+            <!-- Punkty czasowe będą generowane przez JavaScript -->
           </div>
         </div>
 

@@ -346,3 +346,82 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+/* Oś czasu regeneracji */
+.health-timeline {
+  margin-top: 20px;
+  position: relative;
+  padding-left: 40px;
+}
+
+.timeline-item {
+  position: relative;
+  padding: 15px 0 15px 20px;
+  border-left: 2px solid #4CAF50;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 20px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ff6b6b;
+  border: 3px solid #4CAF50;
+}
+
+.timeline-item.unlocked::before {
+  background: #4CAF50;
+}
+
+.timeline-item h4 {
+  margin: 0 0 5px 0;
+  color: #4A89DC;
+}
+
+.timeline-item p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.timeline-progress-bar {
+  height: 6px;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  width: 0%;
+  border-radius: 3px;
+  transition: width 1s ease;
+}
+
+.timeline-header {
+  margin-bottom: 20px;
+  background: #252525;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+@keyframes unlock {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.unlocked-badge {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 3px 8px;
+  background: #4CAF50;
+  border-radius: 12px;
+  font-size: 12px;
+  animation: unlock 0.5s ease-out;
+}
+
+.timeline-item {
+  transition: all 0.3s ease;
+  opacity: 0.6;
+}
+
+.timeline-item.unlocked {
+  opacity: 1;
+  border-left-color: #8BC34A;
+}

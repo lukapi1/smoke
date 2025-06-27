@@ -130,6 +130,8 @@ async function updateHealthTab() {
     const lastTime = new Date(lastEntry.created_at);
     const now = new Date();
     const hoursSinceLast = Math.floor((now - lastTime) / (1000 * 60 * 60));
+
+    updateHealthTimeline(hoursSinceLast);
     
     // Aktualizuj pasek postępu czasu
     const timeProgress = document.getElementById('time-progress');
@@ -550,6 +552,53 @@ function calculateLongestBreak(entries) {
   return longestBreak;
 }
 
+// Dane regeneracji organizmu
+const RECOVERY_TIMELINE = [
+  { hours: 1, title: "20 minut", description: "Ciśnienie krwi i tętno wracają do normy" },
+  { hours: 2, title: "2 godziny", description: "Poprawia się krążenie krwi" },
+  { hours: 8, title: "8 godzin", description: "Poziom tlenu w krwi wraca do normy" },
+  { hours: 24, title: "24 godziny", description: "Tlenek węgla zostaje usunięty z organizmu" },
+  { 
+    hours: 48, 
+    title: "48 godzin", 
+    description: "Nikotyna opuszcza organizm, zmysły smaku i węchu się poprawiają", 
+    details: "Po 2 dniach organizm całkowicie metabolizuje nikotynę. Możesz odczuwać nerwowość - to normalny etap detoksu." 
+  },
+  { hours: 72, title: "72 godziny", description: "Oddychanie staje się łatwiejsze, oskrzela się rozluźniają" },
+  { hours: 168, title: "1 tydzień", description: "Ryzyko zawału zaczyna spadać" },
+  { hours: 720, title: "1 miesiąc", description: "Pojemność płuc zwiększa się o 30%" },
+  { hours: 2160, title: "3 miesiące", description: "Znaczna poprawa krążenia i wydolności" },
+  { hours: 8760, title: "1 rok", description: "Ryzyko chorób serca zmniejszone o połowę" }
+];
+
+function updateHealthTimeline(hoursWithoutSmoking) {
+  const timelineEl = document.getElementById('health-timeline');
+  const progressBar = document.getElementById('health-progress-bar');
+  
+  const maxHours = 8760; // 1 rok
+  const progressPercent = Math.min((hoursWithoutSmoking / maxHours) * 100, 100);
+  
+  progressBar.style.width = `${progressPercent}%`;
+  document.getElementById('current-status').textContent = 
+    `${hoursWithoutSmoking} godzin bez papierosa (${progressPercent.toFixed(1)}% celu rocznego)`;
+  
+  timelineEl.innerHTML = RECOVERY_TIMELINE.map(item => {
+    const isUnlocked = hoursWithoutSmoking >= item.hours;
+    const hoursLeft = item.hours - hoursWithoutSmoking;
+    
+    return `
+      <div class="timeline-item ${isUnlocked ? 'unlocked' : ''}">
+        <h4>${item.hours} godzin</h4>
+        <p>${item.description}</p>
+        ${isUnlocked 
+          ? '<span class="unlocked-badge">✅ Osiągnięte</span>' 
+          : hoursLeft > 0 
+            ? `<span class="time-left">(${hoursLeft}h do osiągnięcia)</span>`
+            : ''}
+      </div>
+    `;
+  }).join('');
+}
 // Inicjalizacja
 document.addEventListener('DOMContentLoaded', async () => {
   const connectionOk = await testConnection();
