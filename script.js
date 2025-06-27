@@ -103,6 +103,12 @@ async function updateStatsTab() {
   const worstDay = Math.min(...dailyCounts);
   const averagePerDay = (dailyCounts.reduce((a, b) => a + b, 0) / dailyCounts.length).toFixed(1);
 
+  // Oblicz najdłuższą przerwę
+  const longestBreak = calculateLongestBreak(allEntries);
+  const longestBreakText = longestBreak 
+    ? formatTimeDuration(longestBreak) 
+    : "Brak danych";
+
   // Aktualizuj UI
   monthlyCostEl.textContent = `Średnio miesięcznie: ${monthlyAverageCost.toFixed(2)} zł`;
   totalCostEl.textContent = `Łącznie wydane: ${totalCost.toFixed(2)} zł (${totalCigs} sztuk)`;
@@ -112,6 +118,8 @@ async function updateStatsTab() {
   bestDayEl.textContent = `Najwięcej dziennie: ${bestDay} papierosów`;
   worstDayEl.textContent = `Najmniej dziennie: ${worstDay} papierosów`;
   averagePerDayEl.textContent = `Średnia dzienna: ${averagePerDay} papierosów`;
+  document.getElementById('longest-break').innerHTML = 
+    `Najdłuższa przerwa: ${longestBreakText}`;
 }
 
 // Aktualizuj zakładkę Zdrowie
@@ -265,17 +273,20 @@ function calculateAverageTimeBetweenCigs(entries) {
 
 // Formatuj czas w przyjazny sposób
 function formatTimeDuration(ms) {
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
 
-    if (hours > 0) {
-        return `${hours} godz ${minutes % 60} min`;
-    } else if (minutes > 0) {
-        return `${minutes} min ${seconds % 60} sek`;
-    } else {
-        return `${seconds} sek`;
-    }
+  if (days > 0) {
+    return `${days} dni ${hours % 24} godz`;
+  } else if (hours > 0) {
+    return `${hours} godz ${minutes % 60} min`;
+  } else if (minutes > 0) {
+    return `${minutes} min`;
+  } else {
+    return `${seconds} sek`;
+  }
 }
 
 // Grupowanie wpisów po dacie
@@ -336,8 +347,6 @@ async function updateUI() {
     const todayCigs = await getTodayCigarettes();
     const allEntries = await getAllEntries();
     const yesterdayCount = await getYesterdayCigarettes();
-
-
 
     // Aktualizuj licznik dzisiejszych papierosów
     todayCountEl.textContent = todayCigs.length;
@@ -516,6 +525,29 @@ async function getYesterdayCigarettes() {
     }
 
     return data.length;
+}
+
+// Oblicza najdłuższą przerwe bez papierosa
+function calculateLongestBreak(entries) {
+  if (entries.length < 2) return null;
+  
+  const sortedEntries = [...entries].sort((a, b) => 
+    new Date(a.created_at) - new Date(b.created_at)
+  );
+
+  let longestBreak = 0;
+  
+  for (let i = 1; i < sortedEntries.length; i++) {
+    const prevTime = new Date(sortedEntries[i-1].created_at);
+    const currTime = new Date(sortedEntries[i].created_at);
+    const breakDuration = currTime - prevTime;
+    
+    if (breakDuration > longestBreak) {
+      longestBreak = breakDuration;
+    }
+  }
+  
+  return longestBreak;
 }
 
 // Inicjalizacja
