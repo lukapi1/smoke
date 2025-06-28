@@ -6,6 +6,9 @@ const supabaseUrl = 'https://xtowjourhfikxzssjdvd.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0b3dqb3VyaGZpa3h6c3NqZHZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1NTU1NTgsImV4cCI6MjA2NTEzMTU1OH0.j76EJctT6cAXav5JV0100cJI8gLb58sKU7Uqv7n_SiU';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Zmienna do przechowywania zaplanowanych godzin
+let scheduledCigaretteTimes = [];
+
 // Test połączenia z bazą
 async function testConnection() {
     try {
@@ -33,9 +36,6 @@ const summaryList = document.getElementById('summary-list');
 const tabBtns = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
 const monthlyCostEl = document.getElementById('monthly-cost');
-const savingsPotentialEl = document.getElementById('savings-potential');
-const healthBenefitsEl = document.getElementById('health-benefits');
-const achievementsEl = document.getElementById('achievements');
 const dailyProgressEl = document.getElementById('daily-progress');
 const progressTextEl = document.getElementById('progress-text');
 const todayCountBadge = document.getElementById('today-count-badge');
@@ -71,7 +71,7 @@ tabBtns.forEach(btn => {
 // Aktualizuj zakładkę Statystyki
 async function updateStatsTab() {
   const allEntries = await getAllEntries();
-  const pricePerPack = 22.50; // 20 zł za paczkę
+  const pricePerPack = 22.50; // 22.50 zł za paczkę
   const cigsPerPack = 20; // 20 papierosów w paczce
   
   // Oblicz dokładne statystyki czasowe
@@ -120,6 +120,8 @@ async function updateStatsTab() {
   averagePerDayEl.textContent = `Średnia dzienna: ${averagePerDay} papierosów`;
   document.getElementById('longest-break').innerHTML = 
     `Najdłuższa przerwa: ${longestBreakText}`;
+  document.getElementById('days-tracked').innerHTML = 
+    `Liczba dni śledzenia: ${daysTracked-1}`;
 }
 
 // Aktualizuj zakładkę Zdrowie
@@ -344,127 +346,6 @@ async function deleteEntry(id) {
     }
 }
 
-// Aktualizuj UI
-async function updateUI() {
-    const todayCigs = await getTodayCigarettes();
-    const allEntries = await getAllEntries();
-    const yesterdayCount = await getYesterdayCigarettes();
-    const yesterdaySameHourCount = await getYesterdaySameHourCount();
-
-    // Aktualizuj licznik dzisiejszych papierosów
-    todayCountEl.textContent = todayCigs.length;
-    todayCountBadge.textContent = todayCigs.length;
-  
-    // Dzisiejszy cel: wczoraj -1 (minimum 1, maksimum np. 20)
-    const dailyGoal = Math.max(1, Math.min(yesterdayCount - 1, 20));
-    const progressPercent = Math.min((todayCigs.length / dailyGoal) * 100, 100);
-    dailyProgressEl.style.width = `${progressPercent}%`;
-
-    // Dodajmy informację o porównaniu z wczoraj
-    let comparisonText = "";
-    if (yesterdaySameHourCount > 0) {
-        if (todayCigs.length < yesterdaySameHourCount) {
-            comparisonText = `(o ${yesterdaySameHourCount - todayCigs.length} mniej niż wczoraj o tej porze - dobra robota!)`;
-        } else if (todayCigs.length > yesterdaySameHourCount) {
-            comparisonText = `(o ${todayCigs.length - yesterdaySameHourCount} więcej niż wczoraj o tej porze - zwolnij!)`;
-        } else {
-            comparisonText = `(tyle samo co wczoraj o tej porze)`; 
-        }
-    }
-    
-    const nextAllowedTime = calculateNextAllowedTime(todayCigs, yesterdayCount);
-    let nextCigInfo = "";
-if (nextAllowedTime) {
-  const hours = nextAllowedTime.getHours().toString().padStart(2, '0');
-  const minutes = nextAllowedTime.getMinutes().toString().padStart(2, '0');
-  nextCigInfo = `<br><small>Następny papieros: po ${hours}:${minutes} (aby zachować cel)</small>`;
-} else {
-  const now = new Date();
-  const endOfDay = new Date();
-  endOfDay.setHours(21, 0, 0, 0);
-  
-  if (now >= endOfDay && todayCigs.length < dailyGoal) {
-    nextCigInfo = `<br><small>Na dziś już koniec! Cel osiągnięty.</small>`;
-  }
-}
-
-    progressTextEl.innerHTML = `${todayCigs.length}/${dailyGoal} papierosów<br><small>${comparisonText}</small>${nextCigInfo}`;
-
-    // Zmień kolor paska jeśli cel przekroczony
-    if (todayCigs.length >= dailyGoal) {
-        dailyProgressEl.style.background = 'linear-gradient(90deg, #dc3545, #c82333)';
-    }
-  
-    if (todayCigs.length > 0) {
-        lastTimeEl.textContent = formatDate(todayCigs[0].created_at);
-        // Dodajemy informację o czasie od ostatniego papierosa
-        const timeSinceLast = getTimeSinceLastCigarette(todayCigs[0].created_at);
-        const timeInfoEl = document.createElement('div');
-        timeInfoEl.textContent = `ostatni spalony: ${timeSinceLast}`;
-        timeInfoEl.style.fontSize = '14px';
-        timeInfoEl.style.color = '#aaa';
-        timeInfoEl.style.marginTop = '5px';
-        
-        // Usuń poprzedni element jeśli istnieje
-        const existingTimeInfo = document.getElementById('time-since-last');
-        if (existingTimeInfo) existingTimeInfo.remove();
-        
-        timeInfoEl.id = 'time-since-last';
-        lastTimeEl.parentNode.appendChild(timeInfoEl);
-    } else {
-        lastTimeEl.textContent = '-';
-        const existingTimeInfo = document.getElementById('time-since-last');
-        if (existingTimeInfo) existingTimeInfo.remove();
-    }
-
-    // Lista wpisów z bieżącego dnia
-    historyList.innerHTML = '';
-    todayCigs.forEach(entry => {
-        const li = document.createElement('li');
-
-        const dateSpan = document.createElement('span');
-        dateSpan.textContent = formatDate(entry.created_at);
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = '❌';
-        deleteBtn.style.background = 'none';
-        deleteBtn.style.color = 'red';
-        deleteBtn.style.border = 'none';
-        deleteBtn.style.cursor = 'pointer';
-        deleteBtn.title = 'Usuń wpis';
-
-        deleteBtn.onclick = async () => {
-            const confirmed = confirm('Czy na pewno chcesz usunąć ten wpis?');
-            if (confirmed) {
-                await deleteEntry(entry.id);
-                await updateUI();
-            }
-        };
-
-        li.appendChild(dateSpan);
-        li.appendChild(deleteBtn);
-        historyList.appendChild(li);
-    });
-
-    // Sumy dzienne
-    const grouped = groupByDate(allEntries);
-    summaryList.innerHTML = '';
-
-    for (const [date, data] of Object.entries(grouped)) {
-        const li = document.createElement('li');
-        const averageTime = calculateAverageTimeBetweenCigs(data.entries);
-        
-        let summaryText = `${date} — ${data.count} papieros(y)`;
-        
-        if (averageTime !== null && data.count > 1) {
-            summaryText += `, średnio co ${formatTimeDuration(averageTime)}`;
-        }
-        
-        li.textContent = summaryText;
-        summaryList.appendChild(li);
-    }
-}
-
 // Funkcja obliczająca czas, który minął od ostatniego papierosa
 function getTimeSinceLastCigarette(lastDate) {
     if (!lastDate) return '-';
@@ -520,13 +401,19 @@ async function generateFullHistoryChart() {
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       scales: {
         y: {
           beginAtZero: true,
           title: { display: true, text: 'Papierosy' }
         },
         x: {
-          title: { display: true, text: 'Data' }
+          title: { display: true, text: 'Data' },
+          ticks: {
+            autoSkip: true,
+            maxRotation: 45,
+            minRotation: 45
+          }
         }
       }
     }
@@ -659,22 +546,197 @@ function calculateNextAllowedTime(todayCigs, yesterdayCount) {
     const remainingCigs = dailyGoal - todayCigs.length;
     
     if (remainingCigs <= 0) {
-        return null; // Cel już osiągnięty lub przekroczony
+        scheduledCigaretteTimes = []; // Wyczyść harmonogram jeśli cel osiągnięty
+        return null;
     }
     
     const now = new Date();
     const endOfDay = new Date();
     endOfDay.setHours(22, 0, 0, 0); // Koniec dnia o 22:00
     
-    // Jeśli jest już po 22:00, zwróć null (koniec na dziś)
-    if (now >= endOfDay) {
+    // Jeśli jest już po 22:00 lub brak zaplanowanych godzin
+    if (now >= endOfDay || scheduledCigaretteTimes.length === 0) {
+        scheduledCigaretteTimes = [];
         return null;
     }
     
-    const timeLeftMs = endOfDay - now;
-    const timeBetweenCigsMs = timeLeftMs / remainingCigs;
+    // Znajdź następną godzinę (pierwszą późniejszą niż teraz)
+    const nextTime = scheduledCigaretteTimes.find(time => time > now);
+    return nextTime || null;
+}
+
+function generateDailySchedule(todayCigs, yesterdayCount) {
+    const dailyGoal = Math.max(1, Math.min(yesterdayCount - 1, 20));
+    const remainingCigs = dailyGoal - todayCigs.length;
     
-    return new Date(now.getTime() + timeBetweenCigsMs);
+    const now = new Date();
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(22, 0, 0, 0);
+    
+    // Wygeneruj harmonogram tylko jeśli:
+    // - to początek dnia (nie ma jeszcze zapisanych papierosów)
+    // - lub zmieniła się liczba pozostałych papierosów
+    if (todayCigs.length === 0 || scheduledCigaretteTimes.length !== remainingCigs) {
+        scheduledCigaretteTimes = [];
+        
+        if (remainingCigs > 0 && now < endOfDay) {
+            const totalMinutes = (endOfDay - now) / (1000 * 60);
+            const interval = totalMinutes / remainingCigs;
+            
+            let currentTime = new Date(now);
+            for (let i = 0; i < remainingCigs; i++) {
+                currentTime = new Date(currentTime.getTime() + interval * 60000);
+                scheduledCigaretteTimes.push(new Date(currentTime));
+            }
+        }
+    }
+}
+
+function formatTimeRemaining(targetTime) {
+    const now = new Date();
+    const diffMs = targetTime - now;
+    
+    if (diffMs <= 0) return "Teraz";
+    
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
+    const remainingMinutes = diffMinutes % 60;
+    
+    if (diffHours > 0) {
+        return `za ${diffHours}h ${remainingMinutes}min`;
+    } else {
+        return `za ${diffMinutes}min`;
+    }
+}
+
+// Aktualizuj UI
+async function updateUI() {
+    const todayCigs = await getTodayCigarettes();
+    const allEntries = await getAllEntries();
+    const yesterdayCount = await getYesterdayCigarettes();
+    const yesterdaySameHourCount = await getYesterdaySameHourCount();
+
+    // Wygeneruj harmonogram na dzień
+    generateDailySchedule(todayCigs, yesterdayCount);
+
+    // Aktualizuj licznik dzisiejszych papierosów
+    todayCountEl.textContent = todayCigs.length;
+    todayCountBadge.textContent = todayCigs.length;
+  
+    // Dzisiejszy cel: wczoraj -1 (minimum 1, maksimum np. 20)
+    const dailyGoal = Math.max(1, Math.min(yesterdayCount - 1, 20));
+    const progressPercent = Math.min((todayCigs.length / dailyGoal) * 100, 100);
+    dailyProgressEl.style.width = `${progressPercent}%`;
+
+    // Dodajmy informację o porównaniu z wczoraj
+    let comparisonText = "";
+    if (yesterdaySameHourCount > 0) {
+        if (todayCigs.length < yesterdaySameHourCount) {
+            comparisonText = `(o ${yesterdaySameHourCount - todayCigs.length} mniej niż wczoraj o tej porze - dobra robota!)`;
+        } else if (todayCigs.length > yesterdaySameHourCount) {
+            comparisonText = `(o ${todayCigs.length - yesterdaySameHourCount} więcej niż wczoraj o tej porze - zwolnij!)`;
+        } else {
+            comparisonText = `(tyle samo co wczoraj o tej porze)`; 
+        }
+    }
+    
+    let nextCigInfo = "";
+    const nextAllowedTime = calculateNextAllowedTime(todayCigs, yesterdayCount);
+
+    if (nextAllowedTime) {
+      const hours = nextAllowedTime.getHours().toString().padStart(2, '0');
+      const minutes = nextAllowedTime.getMinutes().toString().padStart(2, '0');
+      const timeRemaining = formatTimeRemaining(nextAllowedTime);
+      nextCigInfo = `<br><small>Następny papieros: ${hours}:${minutes} (${timeRemaining})</small>`;
+    } else {
+      const now = new Date();
+      const endOfDay = new Date();
+      endOfDay.setHours(22, 0, 0, 0);
+    
+    if (now >= endOfDay && todayCigs.length < dailyGoal) {
+        nextCigInfo = `<br><small>Na dziś już koniec! Cel osiągnięty.</small>`;
+    } else if (todayCigs.length >= dailyGoal) {
+        nextCigInfo = `<br><small>Dzisiejszy cel osiągnięty!</small>`;
+    }
+    }
+
+    progressTextEl.innerHTML = `${todayCigs.length}/${dailyGoal} papierosów<br><small>${comparisonText}</small>${nextCigInfo}`;
+
+    // Zmień kolor paska jeśli cel przekroczony
+    if (todayCigs.length >= dailyGoal) {
+        dailyProgressEl.style.background = 'linear-gradient(90deg, #dc3545, #c82333)';
+    }
+  
+    if (todayCigs.length > 0) {
+        lastTimeEl.textContent = formatDate(todayCigs[0].created_at);
+        // Dodajemy informację o czasie od ostatniego papierosa
+        const timeSinceLast = getTimeSinceLastCigarette(todayCigs[0].created_at);
+        const timeInfoEl = document.createElement('div');
+        timeInfoEl.textContent = `ostatni spalony: ${timeSinceLast}`;
+        timeInfoEl.style.fontSize = '14px';
+        timeInfoEl.style.color = '#aaa';
+        timeInfoEl.style.marginTop = '5px';
+        
+        // Usuń poprzedni element jeśli istnieje
+        const existingTimeInfo = document.getElementById('time-since-last');
+        if (existingTimeInfo) existingTimeInfo.remove();
+        
+        timeInfoEl.id = 'time-since-last';
+        lastTimeEl.parentNode.appendChild(timeInfoEl);
+    } else {
+        lastTimeEl.textContent = '-';
+        const existingTimeInfo = document.getElementById('time-since-last');
+        if (existingTimeInfo) existingTimeInfo.remove();
+    }
+
+    // Lista wpisów z bieżącego dnia
+    historyList.innerHTML = '';
+    todayCigs.forEach(entry => {
+        const li = document.createElement('li');
+
+        const dateSpan = document.createElement('span');
+        dateSpan.textContent = formatDate(entry.created_at);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '❌';
+        deleteBtn.style.background = 'none';
+        deleteBtn.style.color = 'red';
+        deleteBtn.style.border = 'none';
+        deleteBtn.style.cursor = 'pointer';
+        deleteBtn.title = 'Usuń wpis';
+
+        deleteBtn.onclick = async () => {
+            const confirmed = confirm('Czy na pewno chcesz usunąć ten wpis?');
+            if (confirmed) {
+                await deleteEntry(entry.id);
+                await updateUI();
+            }
+        };
+
+        li.appendChild(dateSpan);
+        li.appendChild(deleteBtn);
+        historyList.appendChild(li);
+    });
+
+    // Sumy dzienne
+    const grouped = groupByDate(allEntries);
+    summaryList.innerHTML = '';
+
+    for (const [date, data] of Object.entries(grouped)) {
+        const li = document.createElement('li');
+        const averageTime = calculateAverageTimeBetweenCigs(data.entries);
+        
+        let summaryText = `${date} — ${data.count} papieros(y)`;
+        
+        if (averageTime !== null && data.count > 1) {
+            summaryText += `, średnio co ${formatTimeDuration(averageTime)}`;
+        }
+        
+        li.textContent = summaryText;
+        summaryList.appendChild(li);
+    }
 }
 
 // Inicjalizacja
@@ -691,4 +753,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   await updateUI();
+
+  // Odświeżaj czas co minutę
+  setInterval(async () => {
+    if (document.getElementById('today-tab').classList.contains('active')) {
+      const progressText = document.getElementById('progress-text');
+      if (progressText.innerHTML.includes('Następny papieros')) {
+        await updateUI();
+      }
+    }
+  }, 60000); // 60 sekund
 });

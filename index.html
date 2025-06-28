@@ -8,7 +8,26 @@
 </head>
 <body>
   <div class="container">
-    <h1>Smoke Tracker</h1>
+    <div class="logo-container">
+  <svg class="app-logo" width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Tło (opcjonalne) -->
+    <circle cx="50" cy="50" r="45" fill="#1e1e1e" stroke="#ff6b6b" stroke-width="2"/>
+    
+    <!-- Płomień -->
+    <path d="M50 25C45 15 30 20 30 35C30 50 50 65 50 65C50 65 70 50 70 35C70 20 55 15 50 25Z" fill="url(#flame-gradient)"/>
+    
+    <!-- Licznik (opcjonalny tekst) -->
+    <text x="50" y="58" font-family="Arial" font-size="24" font-weight="bold" text-anchor="middle" fill="#fff"></text>
+    
+    <!-- Gradient dla płomienia -->
+    <defs>
+      <linearGradient id="flame-gradient" x1="50%" y1="0%" x2="50%" y2="100%">
+        <stop offset="0%" stop-color="#ff6b6b"/>
+        <stop offset="100%" stop-color="#c82333"/>
+      </linearGradient>
+    </defs>
+  </svg>
+</div>
     
     <div class="stats">
       <p>Dzisiaj: <span id="today-count">0</span></p>
@@ -63,26 +82,14 @@
         <p id="worst-day"><strong>Najgorszy dzień:</strong> obliczam...</p>
         <p id="average-per-day"><strong>Średnia dzienna:</strong> obliczam...</p>
         <p id="longest-break"><strong>Najdłuższa przerwa:</strong> obliczam...</p>
+        <p id="days-tracked"><strong>Liczba dni śledzenia:</strong> obliczam...</p>
       </div>
     </div>
     
     <div id="health-tab" class="tab-content">
       <div class="health-container">
-    <!-- Box 1: Czas od ostatniego papierosa -->
-        <div class="health-box">
-          <h3>⏱️ Czysty czas</h3>
-          <div class="progress-container">
-            <div class="health-progress" id="time-progress"></div>
-          </div>
-          <p id="time-since-last-text">0 godzin</p>
-          <div class="health-benefits">
-            <p><span>1h:</span> Ciśnienie krwi się stabilizuje</p>
-            <p><span>12h:</span> Tlenek węgla w normie</p>
-            <p><span>48h:</span> Nikotyna opuszcza organizm</p>
-          </div>
-        </div>
 
-    <!-- Box 2: Oszczędności zdrowotne -->
+    <!-- Box: Oszczędności zdrowotne -->
         <div class="health-box">
           <h3>⏳ Oś czasu regeneracji</h3>
           <div class="timeline-header">
@@ -95,13 +102,6 @@
           <div class="health-timeline" id="health-timeline">
             <!-- Punkty czasowe będą generowane przez JavaScript -->
           </div>
-        </div>
-
-    <!-- Box 3: Osiągnięcia -->
-        <div class="health-box" id="achievements-box">
-          <h3>🏆 Osiągnięcia</h3>
-          <div id="achievements">
-        <!-- Tutaj będą dynamicznie dodawane osiągnięcia -->
         </div>
       </div>
     </div>

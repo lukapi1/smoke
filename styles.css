@@ -131,8 +131,14 @@ h1 {
 
 .chart-container {
   position: relative;
-  height: 200px;
+  height: 300px;
   width: 100%;
+}
+
+@media (max-width: 600px) {
+  .chart-container {
+    height: 400px; 
+  }
 }
 
 /* Historia */
@@ -457,4 +463,20 @@ h1 {
 
 .progress-card small.info {
     color: #4CAF50;
+}
+
+.logo-container {
+  text-align: center;
+  margin: 10px 0 20px;
+}
+
+.app-logo {
+  width: 60px;
+  height: 60px;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.app-logo:hover {
+  transform: scale(1.1);
 }
