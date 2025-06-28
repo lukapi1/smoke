@@ -425,3 +425,36 @@ h1 {
   opacity: 1;
   border-left-color: #8BC34A;
 }
+
+.progress-card small {
+    display: block;
+    margin-top: 5px;
+    font-size: 13px;
+    color: #aaa;
+    line-height: 1.4;
+}
+
+.progress-card small span {
+    color: #4CAF50;
+    font-weight: normal;
+}
+
+.progress-card small.warning {
+    color: #ff6b6b;
+}
+
+.progress-card small {
+    display: block;
+    margin-top: 5px;
+    font-size: 13px;
+    color: #aaa;
+    line-height: 1.4;
+}
+
+.progress-card small.warning {
+    color: #ff6b6b;
+}
+
+.progress-card small.info {
+    color: #4CAF50;
+}

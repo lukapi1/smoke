@@ -349,25 +349,52 @@ async function updateUI() {
     const todayCigs = await getTodayCigarettes();
     const allEntries = await getAllEntries();
     const yesterdayCount = await getYesterdayCigarettes();
+    const yesterdaySameHourCount = await getYesterdaySameHourCount();
 
     // Aktualizuj licznik dzisiejszych papierosów
     todayCountEl.textContent = todayCigs.length;
     todayCountBadge.textContent = todayCigs.length;
   
-  // Aktualizuj pasek postępu 
-  // Dzisiejszy cel: wczoraj -1 (minimum 1, maksimum np. 20)
+    // Dzisiejszy cel: wczoraj -1 (minimum 1, maksimum np. 20)
     const dailyGoal = Math.max(1, Math.min(yesterdayCount - 1, 20));
     const progressPercent = Math.min((todayCigs.length / dailyGoal) * 100, 100);
     dailyProgressEl.style.width = `${progressPercent}%`;
-    progressTextEl.textContent = `${todayCigs.length}/${dailyGoal} papierosów`;
+
+    // Dodajmy informację o porównaniu z wczoraj
+    let comparisonText = "";
+    if (yesterdaySameHourCount > 0) {
+        if (todayCigs.length < yesterdaySameHourCount) {
+            comparisonText = `(o ${yesterdaySameHourCount - todayCigs.length} mniej niż wczoraj o tej porze - dobra robota!)`;
+        } else if (todayCigs.length > yesterdaySameHourCount) {
+            comparisonText = `(o ${todayCigs.length - yesterdaySameHourCount} więcej niż wczoraj o tej porze - zwolnij!)`;
+        } else {
+            comparisonText = `(tyle samo co wczoraj o tej porze)`; 
+        }
+    }
+    
+    const nextAllowedTime = calculateNextAllowedTime(todayCigs, yesterdayCount);
+    let nextCigInfo = "";
+if (nextAllowedTime) {
+  const hours = nextAllowedTime.getHours().toString().padStart(2, '0');
+  const minutes = nextAllowedTime.getMinutes().toString().padStart(2, '0');
+  nextCigInfo = `<br><small>Następny papieros: po ${hours}:${minutes} (aby zachować cel)</small>`;
+} else {
+  const now = new Date();
+  const endOfDay = new Date();
+  endOfDay.setHours(21, 0, 0, 0);
   
-  // Zmień kolor paska jeśli cel przekroczony
+  if (now >= endOfDay && todayCigs.length < dailyGoal) {
+    nextCigInfo = `<br><small>Na dziś już koniec! Cel osiągnięty.</small>`;
+  }
+}
+
+    progressTextEl.innerHTML = `${todayCigs.length}/${dailyGoal} papierosów<br><small>${comparisonText}</small>${nextCigInfo}`;
+
+    // Zmień kolor paska jeśli cel przekroczony
     if (todayCigs.length >= dailyGoal) {
         dailyProgressEl.style.background = 'linear-gradient(90deg, #dc3545, #c82333)';
     }
   
-    todayCountEl.textContent = todayCigs.length;
-
     if (todayCigs.length > 0) {
         lastTimeEl.textContent = formatDate(todayCigs[0].created_at);
         // Dodajemy informację o czasie od ostatniego papierosa
@@ -599,6 +626,57 @@ function updateHealthTimeline(hoursWithoutSmoking) {
     `;
   }).join('');
 }
+
+// informacja o liczbie spalonych papierosów w dniu poprzednim o tej samej godzinie
+async function getYesterdaySameHourCount() {
+    const now = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Ustawiamy godzinę na tę samą co teraz
+    yesterday.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+    
+    const startOfYesterday = new Date(yesterday);
+    startOfYesterday.setHours(0, 0, 0, 0);
+    
+    const { data, error } = await supabase
+        .from('smoking_logs')
+        .select('*')
+        .gte('created_at', startOfYesterday.toISOString())
+        .lte('created_at', yesterday.toISOString());
+    
+    if (error) {
+        console.error('Błąd przy pobieraniu wczorajszych danych:', error);
+        return 0;
+    }
+    
+    return data.length;
+}
+
+// informacje o najwcześniejszym możliwym czasie zapalenia następnego papierosa, aby utrzymać cel (o 1 mniej niż wczoraj)
+function calculateNextAllowedTime(todayCigs, yesterdayCount) {
+    const dailyGoal = Math.max(1, Math.min(yesterdayCount - 1, 20));
+    const remainingCigs = dailyGoal - todayCigs.length;
+    
+    if (remainingCigs <= 0) {
+        return null; // Cel już osiągnięty lub przekroczony
+    }
+    
+    const now = new Date();
+    const endOfDay = new Date();
+    endOfDay.setHours(22, 0, 0, 0); // Koniec dnia o 22:00
+    
+    // Jeśli jest już po 22:00, zwróć null (koniec na dziś)
+    if (now >= endOfDay) {
+        return null;
+    }
+    
+    const timeLeftMs = endOfDay - now;
+    const timeBetweenCigsMs = timeLeftMs / remainingCigs;
+    
+    return new Date(now.getTime() + timeBetweenCigsMs);
+}
+
 // Inicjalizacja
 document.addEventListener('DOMContentLoaded', async () => {
   const connectionOk = await testConnection();
