@@ -380,8 +380,8 @@ async function generateFullHistoryChart() {
   
   // Sortowanie dat
   const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
-    const dateA = new Date(a.split('.').reverse().join('-'));
-    const dateB = new Date(b.split('.').reverse().join('-'));
+    const dateA = new Date(a.split('.').reverse().join('-')); // Konwertuj "dd.mm.yyyy" na "yyyy-mm-dd"
+    const dateB = new Date(b.split('.').reverse().join('-')); 
     return dateA - dateB;
   });
   
@@ -610,33 +610,25 @@ function updateHealthTimeline(hoursWithoutSmoking) {
   const timelineEl = document.getElementById('health-timeline');
   const progressBar = document.getElementById('health-progress-bar');
   
-  // Ustawiamy maksymalny czas na 1 rok (8760 godzin)
-  const maxHours = 8760; 
+  // Maksymalny czas to 1 rok (8760 godzin)
+  const maxHours = 8760;
   const progressPercent = Math.min((hoursWithoutSmoking / maxHours) * 100, 100);
   
   progressBar.style.width = `${progressPercent}%`;
   
-  // Formatowanie wyświetlanego czasu
+  // Formatowanie wyświetlanego czasu - tylko dni, godziny, minuty
   let timeDisplay;
   if (hoursWithoutSmoking < 1) {
     const minutes = Math.floor(hoursWithoutSmoking * 60);
     timeDisplay = `${minutes} minut bez papierosa`;
-  } else if (hoursWithoutSmoking >= 8760) {
-    const years = Math.floor(hoursWithoutSmoking / 8760);
-    const remainingHours = hoursWithoutSmoking % 8760;
-    const months = Math.floor(remainingHours / 720);
-    timeDisplay = `${years} lat${years > 1 ? 'a' : ''}${months > 0 ? ` i ${months} miesięcy` : ''} bez papierosa`;
-  } else if (hoursWithoutSmoking >= 720) {
-    const months = Math.floor(hoursWithoutSmoking / 720);
-    const remainingHours = hoursWithoutSmoking % 720;
-    const days = Math.floor(remainingHours / 24);
-    timeDisplay = `${months} miesięcy${days > 0 ? ` i ${days} dni` : ''} bez papierosa`;
-  } else if (hoursWithoutSmoking >= 24) {
-    const days = Math.floor(hoursWithoutSmoking / 24);
-    const remainingHours = hoursWithoutSmoking % 24;
-    timeDisplay = `${days} dni${remainingHours > 0 ? ` i ${remainingHours} godzin` : ''} bez papierosa`;
+  } else if (hoursWithoutSmoking < 24) {
+    const hours = Math.floor(hoursWithoutSmoking);
+    const minutes = Math.floor((hoursWithoutSmoking % 1) * 60);
+    timeDisplay = `${hours} godzin ${minutes} minut bez papierosa`;
   } else {
-    timeDisplay = `${hoursWithoutSmoking.toFixed(0)} godzin bez papierosa`;
+    const days = Math.floor(hoursWithoutSmoking / 24);
+    const remainingHours = Math.floor(hoursWithoutSmoking % 24);
+    timeDisplay = `${days} dni ${remainingHours} godzin bez papierosa`;
   }
   
   document.getElementById('current-status').textContent = timeDisplay;
@@ -644,31 +636,25 @@ function updateHealthTimeline(hoursWithoutSmoking) {
   // Generowanie osi czasu
   timelineEl.innerHTML = RECOVERY_TIMELINE.map(item => {
     const isUnlocked = hoursWithoutSmoking >= item.hours;
- 
-    // Formatowanie czasu do osiągnięcia
     let timeLeftText = '';
-
+    
     if (!isUnlocked) {
       const hoursLeft = item.hours - hoursWithoutSmoking;
-    
-      if (hoursLeft > 0) {
-        if (hoursLeft < 1) {
-    const minutesLeft = Math.ceil(hoursLeft * 60);
-    timeLeftText = `(${minutesLeft} minut do osiągnięcia)`;
-  } else if (hoursLeft >= 8760) {
-    const yearsLeft = Math.floor(hoursLeft / 8760);
-    timeLeftText = `(${yearsLeft} lat${yearsLeft > 1 ? 'a' : ''} do osiągnięcia)`;
-  } else if (hoursLeft >= 720) {
-    const monthsLeft = Math.floor(hoursLeft / 720);
-    timeLeftText = `(${monthsLeft} miesięcy do osiągnięcia)`;
-  } else if (hoursLeft >= 24) {
-    const daysLeft = Math.floor(hoursLeft / 24);
-    timeLeftText = `(${daysLeft} dni do osiągnięcia)`;
-  } else {
-    timeLeftText = `(${Math.ceil(hoursLeft)} godzin do osiągnięcia)`;
-  }
+      
+      // Formatowanie czasu pozostałego
+      if (hoursLeft < 1) {
+        timeLeftText = `(${Math.ceil(hoursLeft * 60)} minut do osiągnięcia)`;
+      } else if (hoursLeft < 24) {
+        const hours = Math.floor(hoursLeft);
+        const minutes = Math.ceil((hoursLeft % 1) * 60);
+        timeLeftText = `(${hours} godzin ${minutes} minut do osiągnięcia)`;
+      } else {
+        const days = Math.floor(hoursLeft / 24);
+        const hours = Math.floor(hoursLeft % 24);
+        timeLeftText = `(${days} dni ${hours} godzin do osiągnięcia)`;
       }
     }
+    
     return `
       <div class="timeline-item ${isUnlocked ? 'unlocked' : ''}">
         <h4>${item.title}</h4>
