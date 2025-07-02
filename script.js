@@ -131,7 +131,7 @@ async function updateHealthTab() {
   if (lastEntry) {
     const lastTime = new Date(lastEntry.created_at);
     const now = new Date();
-    const hoursSinceLast = Math.floor((now - lastTime) / (1000 * 60 * 60));
+    const hoursSinceLast = (now - lastTime) / (1000 * 60 * 60); // dokładna liczba godzin (np. 0.47)
 
     updateHealthTimeline(hoursSinceLast);
     
@@ -637,7 +637,10 @@ function updateHealthTimeline(hoursWithoutSmoking) {
   
   // Formatowanie wyświetlanego czasu
   let timeDisplay;
-  if (hoursWithoutSmoking >= 8760) {
+  if (hoursWithoutSmoking < 1) {
+    const minutes = Math.floor(hoursWithoutSmoking * 60);
+    timeDisplay = `${minutes} minut bez papierosa`;
+  } else if (hoursWithoutSmoking >= 8760) {
     const years = Math.floor(hoursWithoutSmoking / 8760);
     const remainingHours = hoursWithoutSmoking % 8760;
     const months = Math.floor(remainingHours / 720);
@@ -651,9 +654,6 @@ function updateHealthTimeline(hoursWithoutSmoking) {
     const days = Math.floor(hoursWithoutSmoking / 24);
     const remainingHours = hoursWithoutSmoking % 24;
     timeDisplay = `${days} dni${remainingHours > 0 ? ` i ${remainingHours} godzin` : ''} bez papierosa`;
-  } else if (hoursWithoutSmoking < 1) {
-    const minutes = Math.floor(hoursWithoutSmoking * 60);
-    timeDisplay = `${minutes} minut bez papierosa`;
   } else {
     timeDisplay = `${hoursWithoutSmoking.toFixed(0)} godzin bez papierosa`;
   }
@@ -668,7 +668,10 @@ function updateHealthTimeline(hoursWithoutSmoking) {
     // Formatowanie czasu do osiągnięcia
     let timeLeftText = '';
     if (hoursLeft > 0) {
-      if (hoursLeft >= 8760) {
+      if (hoursLeft < 1) {
+        const minutesLeft = Math.floor(hoursLeft * 60);
+        timeLeftText = `(${minutesLeft} minut do osiągnięcia)`;
+      } else if (hoursLeft >= 8760) {
         const yearsLeft = Math.floor(hoursLeft / 8760);
         timeLeftText = `(${yearsLeft} lat${yearsLeft > 1 ? 'a' : ''} do osiągnięcia)`;
       } else if (hoursLeft >= 720) {
@@ -677,9 +680,6 @@ function updateHealthTimeline(hoursWithoutSmoking) {
       } else if (hoursLeft >= 24) {
         const daysLeft = Math.floor(hoursLeft / 24);
         timeLeftText = `(${daysLeft} dni do osiągnięcia)`;
-      } else if (hoursLeft < 1) {
-        const minutesLeft = Math.floor(hoursLeft * 60);
-        timeLeftText = `(${minutesLeft} minut do osiągnięcia)`;
       } else {
         timeLeftText = `(${hoursLeft.toFixed(0)} godzin do osiągnięcia)`;
       }
