@@ -857,7 +857,7 @@ async function updateUI() {
       const hasSmokedSimilarTimeToday = todayCigs.some(entry => {
         const entryTime = new Date(entry.created_at);
         return entryTime.getHours() === yesterdayTime.getHours() && 
-               Math.abs(entryTime.getMinutes() - yesterdayTime.getMinutes()) <= 30;
+               Math.abs(entryTime.getMinutes() - yesterdayTime.getMinutes()) <= 1;
       });
     
       if (!hasSmokedSimilarTimeToday) {
