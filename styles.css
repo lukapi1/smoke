@@ -496,3 +496,18 @@ h1 {
   color: #ccc;
   border-left: 3px solid #4CAF50;
 }
+
+@media (max-width: 600px) {
+  .chart-container {
+    height: 400px;
+  }
+  
+  #full-history-chart {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  
+  .tab-content {
+    overflow-x: auto;
+  }
+}

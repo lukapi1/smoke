@@ -378,10 +378,15 @@ async function generateFullHistoryChart() {
   // Grupowanie danych - używaj tej samej funkcji co w podsumowaniu
   const groupedByDate = groupByDate(allEntries);
   
-  // Sortowanie dat
+  // Sortowanie dat - poprawiona wersja
   const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
-    const dateA = new Date(a.split('.').reverse().join('-')); // Konwertuj "dd.mm.yyyy" na "yyyy-mm-dd"
-    const dateB = new Date(b.split('.').reverse().join('-')); 
+    // Konwertuj "dd.mm.yyyy" na obiekty Date dla poprawnego sortowania
+    const [dayA, monthA, yearA] = a.split('.').map(Number);
+    const [dayB, monthB, yearB] = b.split('.').map(Number);
+    
+    const dateA = new Date(yearA, monthA - 1, dayA);
+    const dateB = new Date(yearB, monthB - 1, dayB);
+    
     return dateA - dateB;
   });
   
