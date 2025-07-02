@@ -372,26 +372,25 @@ function getTimeSinceLastCigarette(lastDate) {
 // Wykres w zakładce historia
 let fullHistoryChart = null; // Przechowuj referencję do wykresu
 
-
 async function generateFullHistoryChart() {
   const allEntries = await getAllEntries();
   
-  // Grupowanie danych
-  const groupedByDate = {};
-  allEntries.forEach(entry => {
-    const date = new Date(entry.created_at);
-    const dateKey = date.toISOString().split('T')[0]; // Format "YYYY-MM-DD"
-    groupedByDate[dateKey] = (groupedByDate[dateKey] || 0) + 1;
-  });
+  // Grupowanie danych - używaj tej samej funkcji co w podsumowaniu
+  const groupedByDate = groupByDate(allEntries);
   
   // Sortowanie dat
-  const sortedDates = Object.keys(groupedByDate).sort((a, b) => new Date(a) - new Date(b));
-  const counts = sortedDates.map(date => groupedByDate[date]);
+  const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
+    const dateA = new Date(a.split('.').reverse().join('-'));
+    const dateB = new Date(b.split('.').reverse().join('-'));
+    return dateA - dateB;
+  });
+  
+  const counts = sortedDates.map(date => groupedByDate[date].count);
   
   // Formatowanie dat do wyświetlenia (np. "01.01")
   const formattedDates = sortedDates.map(date => {
-    const d = new Date(date);
-    return d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
+    const [day, month] = date.split('.');
+    return `${day}.${month}`;
   });
 
   const ctx = document.getElementById('full-history-chart').getContext('2d');
@@ -432,24 +431,30 @@ async function generateFullHistoryChart() {
         x: {
           title: { display: true, text: 'Data' },
           ticks: {
-            autoSkip: true,       // Automatyczne pomijanie etykiet, jeśli jest ich za dużo
-            maxRotation: 90,      // Pionowe etykiety (90 stopni)
-            minRotation: 45,      // Ukośne etykiety (45 stopni)
-            padding: 10,         // Większy odstęp między etykietami
-            maxTicksLimit: Infinity // Wyłącz ograniczenie liczby etykiet
+            autoSkip: true,
+            maxRotation: 90,
+            minRotation: 45,
+            padding: 10,
+            maxTicksLimit: Infinity
           },
           grid: {
-            display: false       // Ukrycie linii siatki na osi X dla lepszej czytelności
+            display: false
           }
         }
       },
       plugins: {
         legend: {
-          display: false         // Ukryj legendę, jeśli nie jest potrzebna
+          display: false
         },
         tooltip: {
-          mode: 'index',         // Pokazuj dane dla danego punktu
-          intersect: false       // Nie wymagaj dokładnego najechania na punkt
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            title: function(context) {
+              // Pełna data w tooltipie
+              return sortedDates[context[0].dataIndex];
+            }
+          }
         }
       }
     }
@@ -542,47 +547,152 @@ function calculateLongestBreak(entries) {
 
 // Dane regeneracji organizmu
 const RECOVERY_TIMELINE = [
-  { hours: 1, title: "20 minut", description: "Ciśnienie krwi i tętno wracają do normy" },
-  { hours: 2, title: "2 godziny", description: "Poprawia się krążenie krwi" },
-  { hours: 8, title: "8 godzin", description: "Poziom tlenu w krwi wraca do normy" },
-  { hours: 24, title: "24 godziny", description: "Tlenek węgla zostaje usunięty z organizmu" },
+  { 
+    hours: 1, 
+    title: "20 minut", 
+    description: "Ciśnienie krwi i tętno wracają do normy" 
+  },
+  { 
+    hours: 2, 
+    title: "2 godziny", 
+    description: "Poprawia się krążenie krwi" 
+  },
+  { 
+    hours: 8, 
+    title: "8 godzin", 
+    description: "Poziom tlenu we krwi wraca do normy" 
+  },
+  { 
+    hours: 24, 
+    title: "1 dzień", 
+    description: "Tlenek węgla zostaje usunięty z organizmu" 
+  },
   { 
     hours: 48, 
-    title: "48 godzin", 
-    description: "Nikotyna opuszcza organizm, zmysły smaku i węchu się poprawiają", 
+    title: "2 dni", 
+    description: "Nikotyna opuszcza organizm, zmysły smaku i węchu się poprawiają",
     details: "Po 2 dniach organizm całkowicie metabolizuje nikotynę. Możesz odczuwać nerwowość - to normalny etap detoksu." 
   },
-  { hours: 72, title: "72 godziny", description: "Oddychanie staje się łatwiejsze, oskrzela się rozluźniają" },
-  { hours: 168, title: "1 tydzień", description: "Ryzyko zawału zaczyna spadać" },
-  { hours: 720, title: "1 miesiąc", description: "Pojemność płuc zwiększa się o 30%" },
-  { hours: 2160, title: "3 miesiące", description: "Znaczna poprawa krążenia i wydolności" },
-  { hours: 8760, title: "1 rok", description: "Ryzyko chorób serca zmniejszone o połowę" }
+  { 
+    hours: 72, 
+    title: "3 dni", 
+    description: "Oddychanie staje się łatwiejsze, oskrzela się rozluźniają" 
+  },
+  { 
+    hours: 168, 
+    title: "1 tydzień", 
+    description: "Ryzyko zawału zaczyna spadać" 
+  },
+  { 
+    hours: 720, 
+    title: "1 miesiąc", 
+    description: "Pojemność płuc zwiększa się o 30%" 
+  },
+  { 
+    hours: 2160, 
+    title: "3 miesiące", 
+    description: "Znaczna poprawa krążenia i wydolności" 
+  },
+  { 
+    hours: 4320, 
+    title: "6 miesięcy", 
+    description: "Kaszel palacza i duszności zmniejszają się" 
+  },
+  { 
+    hours: 8760, 
+    title: "1 rok", 
+    description: "Ryzyko chorób serca zmniejszone o połowę" 
+  },
+  { 
+    hours: 17520, 
+    title: "2 lata", 
+    description: "Ryzyko zawału serca spada do poziomu osoby niepalącej" 
+  },
+  { 
+    hours: 26280, 
+    title: "5 lat", 
+    description: "Ryzyko udaru mózgu spada do poziomu osoby niepalącej" 
+  },
+  { 
+    hours: 43800, 
+    title: "10 lat", 
+    description: "Ryzyko raka płuc spada o połowę w porównaniu z palaczem" 
+  },
+  { 
+    hours: 87600, 
+    title: "15 lat", 
+    description: "Ryzyko chorób serca i raka płuc porównywalne z osobą, która nigdy nie paliła" 
+  }
 ];
 
 function updateHealthTimeline(hoursWithoutSmoking) {
   const timelineEl = document.getElementById('health-timeline');
   const progressBar = document.getElementById('health-progress-bar');
   
-  const maxHours = 8760; // 1 rok
+  // Ustawiamy maksymalny czas na 15 lat (131400 godzin) dla lepszej skali
+  const maxHours = 131400; 
   const progressPercent = Math.min((hoursWithoutSmoking / maxHours) * 100, 100);
   
   progressBar.style.width = `${progressPercent}%`;
-  document.getElementById('current-status').textContent = 
-    `${hoursWithoutSmoking} godzin bez papierosa (${progressPercent.toFixed(1)}% celu rocznego)`;
   
+  // Formatowanie wyświetlanego czasu
+  let timeDisplay;
+  if (hoursWithoutSmoking >= 8760) {
+    const years = Math.floor(hoursWithoutSmoking / 8760);
+    const remainingHours = hoursWithoutSmoking % 8760;
+    const months = Math.floor(remainingHours / 720);
+    timeDisplay = `${years} lat${years > 1 ? 'a' : ''}${months > 0 ? ` i ${months} miesięcy` : ''} bez papierosa`;
+  } else if (hoursWithoutSmoking >= 720) {
+    const months = Math.floor(hoursWithoutSmoking / 720);
+    const remainingHours = hoursWithoutSmoking % 720;
+    const days = Math.floor(remainingHours / 24);
+    timeDisplay = `${months} miesięcy${days > 0 ? ` i ${days} dni` : ''} bez papierosa`;
+  } else if (hoursWithoutSmoking >= 24) {
+    const days = Math.floor(hoursWithoutSmoking / 24);
+    const remainingHours = hoursWithoutSmoking % 24;
+    timeDisplay = `${days} dni${remainingHours > 0 ? ` i ${remainingHours} godzin` : ''} bez papierosa`;
+  } else if (hoursWithoutSmoking < 1) {
+    const minutes = Math.floor(hoursWithoutSmoking * 60);
+    timeDisplay = `${minutes} minut bez papierosa`;
+  } else {
+    timeDisplay = `${hoursWithoutSmoking.toFixed(0)} godzin bez papierosa`;
+  }
+  
+  document.getElementById('current-status').textContent = timeDisplay;
+  
+  // Generowanie osi czasu
   timelineEl.innerHTML = RECOVERY_TIMELINE.map(item => {
     const isUnlocked = hoursWithoutSmoking >= item.hours;
     const hoursLeft = item.hours - hoursWithoutSmoking;
     
+    // Formatowanie czasu do osiągnięcia
+    let timeLeftText = '';
+    if (hoursLeft > 0) {
+      if (hoursLeft >= 8760) {
+        const yearsLeft = Math.floor(hoursLeft / 8760);
+        timeLeftText = `(${yearsLeft} lat${yearsLeft > 1 ? 'a' : ''} do osiągnięcia)`;
+      } else if (hoursLeft >= 720) {
+        const monthsLeft = Math.floor(hoursLeft / 720);
+        timeLeftText = `(${monthsLeft} miesięcy do osiągnięcia)`;
+      } else if (hoursLeft >= 24) {
+        const daysLeft = Math.floor(hoursLeft / 24);
+        timeLeftText = `(${daysLeft} dni do osiągnięcia)`;
+      } else if (hoursLeft < 1) {
+        const minutesLeft = Math.floor(hoursLeft * 60);
+        timeLeftText = `(${minutesLeft} minut do osiągnięcia)`;
+      } else {
+        timeLeftText = `(${hoursLeft.toFixed(0)} godzin do osiągnięcia)`;
+      }
+    }
+    
     return `
       <div class="timeline-item ${isUnlocked ? 'unlocked' : ''}">
-        <h4>${item.hours} godzin</h4>
+        <h4>${item.title}</h4>
         <p>${item.description}</p>
         ${isUnlocked 
           ? '<span class="unlocked-badge">✅ Osiągnięte</span>' 
-          : hoursLeft > 0 
-            ? `<span class="time-left">(${hoursLeft}h do osiągnięcia)</span>`
-            : ''}
+          : timeLeftText ? `<span class="time-left">${timeLeftText}</span>` : ''}
+        ${item.details && isUnlocked ? `<div class="timeline-details">${item.details}</div>` : ''}
       </div>
     `;
   }).join('');
