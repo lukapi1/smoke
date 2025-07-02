@@ -546,6 +546,7 @@ function calculateLongestBreak(entries) {
 }
 
 // Dane regeneracji organizmu
+// Dane regeneracji organizmu (skrócone do 1 roku)
 const RECOVERY_TIMELINE = [
   { 
     hours: 0.33, 
@@ -602,26 +603,6 @@ const RECOVERY_TIMELINE = [
     hours: 8760, 
     title: "1 rok", 
     description: "Ryzyko chorób serca zmniejszone o połowę" 
-  },
-  { 
-    hours: 17520, 
-    title: "2 lata", 
-    description: "Ryzyko zawału serca spada do poziomu osoby niepalącej" 
-  },
-  { 
-    hours: 26280, 
-    title: "5 lat", 
-    description: "Ryzyko udaru mózgu spada do poziomu osoby niepalącej" 
-  },
-  { 
-    hours: 43800, 
-    title: "10 lat", 
-    description: "Ryzyko raka płuc spada o połowę w porównaniu z palaczem" 
-  },
-  { 
-    hours: 87600, 
-    title: "15 lat", 
-    description: "Ryzyko chorób serca i raka płuc porównywalne z osobą, która nigdy nie paliła" 
   }
 ];
 
@@ -629,8 +610,8 @@ function updateHealthTimeline(hoursWithoutSmoking) {
   const timelineEl = document.getElementById('health-timeline');
   const progressBar = document.getElementById('health-progress-bar');
   
-  // Ustawiamy maksymalny czas na 15 lat (131400 godzin) dla lepszej skali
-  const maxHours = 131400; 
+  // Ustawiamy maksymalny czas na 1 rok (8760 godzin)
+  const maxHours = 8760; 
   const progressPercent = Math.min((hoursWithoutSmoking / maxHours) * 100, 100);
   
   progressBar.style.width = `${progressPercent}%`;
