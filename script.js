@@ -548,7 +548,7 @@ function calculateLongestBreak(entries) {
 // Dane regeneracji organizmu
 const RECOVERY_TIMELINE = [
   { 
-    hours: 1, 
+    hours: 0.33, 
     title: "20 minut", 
     description: "Ciśnienie krwi i tętno wracają do normy" 
   },
@@ -663,28 +663,31 @@ function updateHealthTimeline(hoursWithoutSmoking) {
   // Generowanie osi czasu
   timelineEl.innerHTML = RECOVERY_TIMELINE.map(item => {
     const isUnlocked = hoursWithoutSmoking >= item.hours;
-    const hoursLeft = item.hours - hoursWithoutSmoking;
-    
+ 
     // Formatowanie czasu do osiągnięcia
     let timeLeftText = '';
-    if (hoursLeft > 0) {
-      if (hoursLeft < 1) {
-        const minutesLeft = Math.floor(hoursLeft * 60);
-        timeLeftText = `(${minutesLeft} minut do osiągnięcia)`;
-      } else if (hoursLeft >= 8760) {
-        const yearsLeft = Math.floor(hoursLeft / 8760);
-        timeLeftText = `(${yearsLeft} lat${yearsLeft > 1 ? 'a' : ''} do osiągnięcia)`;
-      } else if (hoursLeft >= 720) {
-        const monthsLeft = Math.floor(hoursLeft / 720);
-        timeLeftText = `(${monthsLeft} miesięcy do osiągnięcia)`;
-      } else if (hoursLeft >= 24) {
-        const daysLeft = Math.floor(hoursLeft / 24);
-        timeLeftText = `(${daysLeft} dni do osiągnięcia)`;
-      } else {
-        timeLeftText = `(${hoursLeft.toFixed(0)} godzin do osiągnięcia)`;
+
+    if (!isUnlocked) {
+      const hoursLeft = item.hours - hoursWithoutSmoking;
+    
+      if (hoursLeft > 0) {
+        if (hoursLeft < 1) {
+    const minutesLeft = Math.ceil(hoursLeft * 60);
+    timeLeftText = `(${minutesLeft} minut do osiągnięcia)`;
+  } else if (hoursLeft >= 8760) {
+    const yearsLeft = Math.floor(hoursLeft / 8760);
+    timeLeftText = `(${yearsLeft} lat${yearsLeft > 1 ? 'a' : ''} do osiągnięcia)`;
+  } else if (hoursLeft >= 720) {
+    const monthsLeft = Math.floor(hoursLeft / 720);
+    timeLeftText = `(${monthsLeft} miesięcy do osiągnięcia)`;
+  } else if (hoursLeft >= 24) {
+    const daysLeft = Math.floor(hoursLeft / 24);
+    timeLeftText = `(${daysLeft} dni do osiągnięcia)`;
+  } else {
+    timeLeftText = `(${Math.ceil(hoursLeft)} godzin do osiągnięcia)`;
+  }
       }
     }
-    
     return `
       <div class="timeline-item ${isUnlocked ? 'unlocked' : ''}">
         <h4>${item.title}</h4>
