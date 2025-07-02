@@ -370,26 +370,48 @@ function getTimeSinceLastCigarette(lastDate) {
 }
 
 // Wykres w zakładce historia
+let fullHistoryChart = null; // Przechowuj referencję do wykresu
+
+
 async function generateFullHistoryChart() {
-  const allEntries = await getAllEntries();  // Pobierz wszystkie wpisy z Supabase
+  const allEntries = await getAllEntries();
   
-  // Grupuj wpisy po datach (dzień/miesiąc)
+  // Grupowanie danych
   const groupedByDate = {};
   allEntries.forEach(entry => {
-    const date = new Date(entry.created_at).toLocaleDateString('pl-PL');  // Format: "DD.MM.YYYY"
-    groupedByDate[date] = (groupedByDate[date] || 0) + 1;
+    const date = new Date(entry.created_at);
+    const dateKey = date.toISOString().split('T')[0]; // Format "YYYY-MM-DD"
+    groupedByDate[dateKey] = (groupedByDate[dateKey] || 0) + 1;
   });
   
-  // Przygotuj dane dla wykresu
-  const dates = Object.keys(groupedByDate).sort();  // Posortowane daty
-  const counts = dates.map(date => groupedByDate[date]);  // Liczba papierosów per dzień
+  // Sortowanie dat
+  const sortedDates = Object.keys(groupedByDate).sort((a, b) => new Date(a) - new Date(b));
+  const counts = sortedDates.map(date => groupedByDate[date]);
   
-  // Generuj wykres
+  // Formatowanie dat do wyświetlenia (np. "01.01")
+  const formattedDates = sortedDates.map(date => {
+    const d = new Date(date);
+    return d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
+  });
+
   const ctx = document.getElementById('full-history-chart').getContext('2d');
-  new Chart(ctx, {
+  
+  // Zniszcz poprzedni wykres, jeśli istnieje
+  if (fullHistoryChart) fullHistoryChart.destroy();
+
+  // Jeśli brak danych, wyświetl komunikat
+  if (sortedDates.length === 0) {
+    ctx.fillStyle = '#aaa';
+    ctx.textAlign = 'center';
+    ctx.fillText('Brak danych do wyświetlenia', ctx.canvas.width / 2, ctx.canvas.height / 2);
+    return;
+  }
+
+  // Konfiguracja wykresu
+  fullHistoryChart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: dates,
+      labels: formattedDates,
       datasets: [{
         label: 'Liczba papierosów',
         data: counts,
@@ -410,10 +432,24 @@ async function generateFullHistoryChart() {
         x: {
           title: { display: true, text: 'Data' },
           ticks: {
-            autoSkip: true,
-            maxRotation: 45,
-            minRotation: 45
+            autoSkip: true,       // Automatyczne pomijanie etykiet, jeśli jest ich za dużo
+            maxRotation: 90,      // Pionowe etykiety (90 stopni)
+            minRotation: 45,      // Ukośne etykiety (45 stopni)
+            padding: 10,         // Większy odstęp między etykietami
+            maxTicksLimit: Infinity // Wyłącz ograniczenie liczby etykiet
+          },
+          grid: {
+            display: false       // Ukrycie linii siatki na osi X dla lepszej czytelności
           }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false         // Ukryj legendę, jeśli nie jest potrzebna
+        },
+        tooltip: {
+          mode: 'index',         // Pokazuj dane dla danego punktu
+          intersect: false       // Nie wymagaj dokładnego najechania na punkt
         }
       }
     }
@@ -441,6 +477,44 @@ async function getYesterdayCigarettes() {
     }
 
     return data.length;
+}
+
+async function getNextYesterdayCigaretteTime() {
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Pobierz wszystkie wpisy z wczoraj
+    const startOfYesterday = new Date(yesterday);
+    startOfYesterday.setHours(0, 0, 0, 0);
+    const endOfYesterday = new Date(yesterday);
+    endOfYesterday.setHours(23, 59, 59, 999);
+    
+    const { data, error } = await supabase
+        .from('smoking_logs')
+        .select('*')
+        .gte('created_at', startOfYesterday.toISOString())
+        .lte('created_at', endOfYesterday.toISOString())
+        .order('created_at', { ascending: true });
+    
+    if (error || !data || data.length === 0) return null;
+    
+    // Znajdź pierwszy wczorajszy papieros, którego czas JESZCZE NIE MINĄŁ dzisiaj
+    const nowHours = now.getHours();
+    const nowMinutes = now.getMinutes();
+    
+    for (const entry of data) {
+        const entryTime = new Date(entry.created_at);
+        const entryHours = entryTime.getHours();
+        const entryMinutes = entryTime.getMinutes();
+        
+        // Czy to przyszła godzina (np. teraz 08:53, a wczorajszy papieros o 09:00)?
+        if (entryHours > nowHours || (entryHours === nowHours && entryMinutes > nowMinutes)) {
+            return entry; // Znaleziono odpowiedni moment
+        }
+    }
+    
+    return null; // Nie ma już dziś więcej godzin do pominięcia
 }
 
 // Oblicza najdłuższą przerwe bez papierosa
@@ -660,6 +734,25 @@ async function updateUI() {
     } else if (todayCigs.length >= dailyGoal) {
         nextCigInfo = `<br><small>Dzisiejszy cel osiągnięty!</small>`;
     }
+    }
+
+    const nextYesterdayCig = await getNextYesterdayCigaretteTime();
+    if (nextYesterdayCig) {
+      const yesterdayTime = new Date(nextYesterdayCig.created_at);
+      const hours = yesterdayTime.getHours().toString().padStart(2, '0');
+      const minutes = yesterdayTime.getMinutes().toString().padStart(2, '0');
+    
+      // Sprawdź, czy dzisiaj już nie zapaliłeś o podobnej godzinie
+      const todayCigs = await getTodayCigarettes();
+      const hasSmokedSimilarTimeToday = todayCigs.some(entry => {
+        const entryTime = new Date(entry.created_at);
+        return entryTime.getHours() === yesterdayTime.getHours() && 
+               Math.abs(entryTime.getMinutes() - yesterdayTime.getMinutes()) <= 30;
+      });
+    
+      if (!hasSmokedSimilarTimeToday) {
+        nextCigInfo += `<br><small class="warning">Wczoraj o ${hours}:${minutes} zapaliłeś papierosa - pomiń go dziś, aby poprawić wynik!</small>`;
+      }
     }
 
     progressTextEl.innerHTML = `${todayCigs.length}/${dailyGoal} papierosów<br><small>${comparisonText}</small>${nextCigInfo}`;
